@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>My Bypass Tool</title>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <style>
+        body { font-family: Arial; max-width: 600px; margin: 50px auto; padding: 20px; }
+        input, button { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; }
+        #result { background: #f4f4f4; padding: 15px; white-space: pre-wrap; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <h2>🔗 Bypass Tool</h2>
+    <input id="urlInput" placeholder="粘贴短链或 Key 链接...">
+    <!-- ！！！把下面 data-sitekey 的值换成你自己的 ！！！ -->
+    <div class="cf-turnstile" data-sitekey="<0x4AAAAAAFmM_2ZFDB9Bor0J>" data-callback="onTurnstileSuccess"></div>
+    <button id="submitBtn" onclick="bypass()" disabled>Bypass</button>
+    <pre id="result">等待操作...</pre>
+
+    <script>
+        let turnstileToken = null;
+
+        // 验证码成功后的回调
+        function onTurnstileSuccess(token) {
+            turnstileToken = token;
+            document.getElementById('submitBtn').disabled = false;
+        }
+
+        async function bypass() {
+            const url = document.getElementById('urlInput').value.trim();
+            const resultEl = document.getElementById('result');
+            
+            if (!url) { alert('请输入链接'); return; }
+            if (!turnstileToken) { alert('请先完成验证'); return; }
+
+            resultEl.textContent = '处理中...';
+            document.getElementById('submitBtn').disabled = true;
+
+            try {
+                const res = await fetch('http://127.0.0.1:5000/api/bypass', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ url: url, turnstileToken: turnstileToken })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    resultEl.textContent = '✅ 真实链接：\n' + data.result;
+                } else {
+                    resultEl.textContent = '❌ 失败：' + (data.error || '未知错误');
+                }
+            } catch (err) {
+                resultEl.textContent = '❌ 请求出错：' + err.message;
+            } finally {
+                document.getElementById('submitBtn').disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
