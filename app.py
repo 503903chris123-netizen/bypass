@@ -35,10 +35,27 @@ def do_bypass():
 
     # 2. 验证通过，调用 PyBypass 解析链接
     try:
-        result = bypasser.bypass(url)
-        return jsonify({"success": True, "result": result})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+    # 调用 bypass.vip 的公开接口
+    payload = {"url": url}
+    api_res = requests.post("https://api.bypass.vip/", data=payload, timeout=30)
+    
+    # 检查 HTTP 请求本身是否成功
+    api_res.raise_for_status()
+    
+    # 解析返回的 JSON 数据
+    result_data = api_res.json()
+    
+    # bypass.vip 的返回格式通常包含目标链接，这里做个兼容处理
+    # 如果返回结果里有 'result' 或 'destination' 字段，就取出来
+    if isinstance(result_data, dict):
+        final_link = result_data.get('result') or result_data.get('destination') or result_data
+    else:
+        final_link = result_data
+
+    return jsonify({"success": True, "result": final_link})
+
+except Exception as e:
+    return jsonify({"success": False, "error": str(e)}), 500
 from flask import send_file
 
 @app.route('/')
